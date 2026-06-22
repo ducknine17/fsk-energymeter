@@ -165,7 +165,8 @@ export function parse(data) {
 }
 
 export function calculateMetadata(data, powerLimit = 80) {
-  const processed = [[], [], [], [], [], [], [], []];
+  const BATTERY_CAPACITY = 4133; // Wh
+  const processed = [[], [], [], [], [], [], [], [], []];
   const violations = [];
 
   let totalEnergy = 0;
@@ -200,7 +201,7 @@ export function calculateMetadata(data, powerLimit = 80) {
     const power = (record.hv_voltage * record.hv_current) / 1000;
 
     if (prevTimestamp !== null) {
-      totalEnergy += (power * (timestamp - prevTimestamp)) / 3600000;
+      totalEnergy += (Math.abs(power) * (timestamp - prevTimestamp)) / 3600000;
     }
     prevTimestamp = timestamp;
 
@@ -263,6 +264,9 @@ export function calculateMetadata(data, powerLimit = 80) {
       }
     }
 
+  const soc =
+    Math.max( 0, 100 - (totalEnergy / BATTERY_CAPACITY) * 100 );
+
     processed[0].push(timestamp);
     processed[1].push(record.hv_voltage);
     processed[2].push(record.hv_current);
@@ -271,6 +275,7 @@ export function calculateMetadata(data, powerLimit = 80) {
     processed[5].push(record.temperature);
     processed[6].push(null);
     processed[7].push(null);
+    processed[8].push(soc);
 
     pIdx++;
   }
@@ -285,6 +290,10 @@ export function calculateMetadata(data, powerLimit = 80) {
     }
   }
 
+  let batteryRemaining =  100 - (totalEnergy / BATTERY_CAPACITY) * 100;
+  batteryRemaining = Math.max(0, batteryRemaining);
+
+
   data.processed = processed;
   data.power = totalEnergy;
   data.max_power = maxPower;
@@ -294,6 +303,7 @@ export function calculateMetadata(data, powerLimit = 80) {
   data.max_current = maxCurrent;
   data.max_current_timestamp = maxCurrentTs;
   data.violation = violations;
+  data.battery_remaining = batteryRemaining;
 
   return data;
 }

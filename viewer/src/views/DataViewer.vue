@@ -13,11 +13,13 @@ import {
 
 const notyf = useNotification();
 const chartContainer = ref(null);
+const batteryChartContainer = ref(null);
 const selectedFile = ref(null);
 const result = ref(null);
 const powerLimit = ref(parseInt(localStorage.getItem("power-limit")) || 80);
 
 let uplot = null;
+let batteryPlot = null;
 let resizeObserver = null;
 
 const metadata = ref({
@@ -29,6 +31,7 @@ const metadata = ref({
   power: "N/A",
   voltage: "N/A",
   current: "N/A",
+  battery_remaining: "N/A",
   violation: "N/A",
   startup: "N/A",
   v_cal: "N/A",
@@ -200,6 +203,36 @@ function initChart() {
   );
 }
 
+function initBatteryChart() {
+  if (!batteryChartContainer.value) {
+    return;
+  }
+  batteryPlot = new uPlot(
+    {
+      width: batteryChartContainer.value.clientWidth - 32,
+      height: 250,
+      ms: true,
+      series: [
+        {},
+        {
+          label: "Battery %",
+          stroke: "gold",
+          value: (_, v) => (v?.toFixed(1) ?? "-") + "%",
+        },
+      ],
+      axes: [
+        {},
+        {
+          values: (_, t) => t.map((v) => v.toFixed(0) + "%"),
+        },
+      ],
+    },
+    [[], []],
+    batteryChartContainer.value,
+  );
+}
+
+
 function handleFileSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -242,6 +275,10 @@ function handleFileSelect(e) {
 
 function setChartData(data) {
   uplot?.setData(data.processed);
+  batteryPlot?.setData([
+    data.processed[0],
+    data.processed[8],
+  ]);
   displayMetadata(data);
 }
 
@@ -255,6 +292,7 @@ function displayMetadata(logs) {
   metadata.value.power = `${logs.max_power.toFixed(1)} kW`;
   metadata.value.voltage = `${logs.max_voltage.toFixed(1)} V`;
   metadata.value.current = `${logs.max_current.toFixed(1)} A`;
+  metadata.value.battery_remaining = `${logs.battery_remaining.toFixed(1)} %`;
   alerts.value.warnings =
     logs.header.datetime > Number(new Date(2099, 0))
       ? ["Invalid RTC date detected. Sync the clock in the Device configuration tab."]
@@ -322,6 +360,7 @@ function handleResize() {
 
 onMounted(() => {
   initChart();
+  initBatteryChart();
   resizeObserver = new ResizeObserver(() => {
     requestAnimationFrame(() => handleResize());
   });
@@ -418,6 +457,10 @@ onUnmounted(() => {
                 <td>Peak Current</td>
                 <td>{{ metadata.current }}</td>
               </tr>
+              <tr>
+                <td>Battery Remaining</td>
+                <td>{{ metadata.battery_remaining }}</td>
+              </tr>
             </tbody></table>
           </div>
           <div class="stats-card">
@@ -442,6 +485,10 @@ onUnmounted(() => {
           </div>
         </div>
         <div ref="chartContainer" class="chart-container"></div>
+        <h4 style="margin-top: 2rem; margin-bottom: 1rem;">
+          Battery Remaining (%)
+        </h4>
+        <div ref="batteryChartContainer" class="chart-container"></div>
         <div class="chart-hint"><i class="fas fa-info-circle"></i> Drag or scroll to zoom, double click to reset.</div>
         <div class="button-group center">
           <button class="btn btn-warning" :disabled="!result" @click="togglePowerLimit">
