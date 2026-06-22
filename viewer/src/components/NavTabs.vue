@@ -5,6 +5,7 @@ const route = useRoute();
 
 const navItems = [
   { id: "viewer", label: "Data Viewer", path: "/", icon: "fa-chart-line" },
+  { id: "multi", label: "Multi Run Analysis", path: "/multi", icon: "fa-layer-group" },
   { id: "config", label: "Device Config", path: "/config", icon: "fa-gear" },
 ];
 </script>

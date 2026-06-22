@@ -1,10 +1,12 @@
 import { createRouter, createWebHistory, createWebHashHistory } from "vue-router";
 import DataViewer from "../views/DataViewer.vue";
 import DeviceConfig from "../views/DeviceConfig.vue";
+import MultiRunViewer from "../views/MultiRunViewer.vue";
 
 const routes = [
   { path: "/", name: "viewer", component: DataViewer },
   { path: "/config", name: "config", component: DeviceConfig },
+  { path: "/multi",  name: "MultiRunViewer",  component: MultiRunViewer,},
 ];
 
 const single = import.meta.env.MODE === "single";
