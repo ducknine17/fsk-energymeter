@@ -1,0 +1,173 @@
+[33m817cf27[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Add battery remaining visualization
+[33ma695126[m[33m ([m[1;33mtag: [m[1;33mv1.8.2[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m style: align CSS variables and header dark scoping with main project
+[33me40a67a[m style: apply Linear design system (Inter font, dark header, flat palette)
+[33m222004f[m fix(ci): preserve multi-arch platform digests in cleanup
+[33mf756b2b[m ci: add GHCR build workflow, improve Dockerfile
+[33mc6f8755[m chore: change default serve port from 9400 to 9800
+[33mfc93655[m fix: run container as non-root user
+[33m33c2aed[m[33m ([m[1;33mtag: [m[1;33mv1.8.1[m[33m)[m update: title
+[33mb9b0eed[m update: format code
+[33m37465a6[m update: misc description
+[33mf45b73c[m[33m ([m[1;33mtag: [m[1;33mv1.8.0[m[33m)[m fix: calibration values scale
+[33m942485f[m fix: graph horizontal scrollbar
+[33m3233298[m update: make style
+[33m7f5da5a[m improve: data processing performance
+[33m1d0fc80[m update: remove protocol version and add calibration offset
+[33mdabd400[m fix: misc typos
+[33m5d11887[m[33m ([m[1;33mtag: [m[1;33mv1.7.0[m[33m)[m update: README assembly guide
+[33mcd64ff6[m fix: web deploy build
+[33m5b8f28a[m Merge pull request #1 from luftaquila/vue
+[33m9ee0314[m update: reverse theme icon
+[33md5fbf7e[m update: remove unused files and restore graph export
+[33m8114c28[m update: node packages
+[33md86c4b8[m add: docker and routing, theme sync
+[33m7ea8da8[m refactor: vue.js
+[33me3e27d3[m[33m ([m[1;33mtag: [m[1;33mv1.6.3[m[33m)[m revert: restore graph export button
+[33m4c99c16[m LICENSE
+[33m9da3663[m[33m ([m[1;33mtag: [m[1;33mv1.6.2[m[33m)[m fix: zoom bug
+[33mbba5be4[m[33m ([m[1;33mtag: [m[1;33mv1.6.1[m[33m)[m fix: violation point index bug
+[33m42a5003[m[33m ([m[1;33mtag: [m[1;33mv1.6.0[m[33m)[m update: violation colors
+[33m6f2dc93[m fix: zoom center and performance
+[33mfe340ff[m add: power limit violation points
+[33m0a16f18[m add: peak points annotations
+[33m1c58627[m add: check power limit violation
+[33mbd9fd7c[m add: reverse current direction
+[33m66562d4[m add: display peak voltage
+[33mf02c88a[m update: remove export image button
+[33m08b7f05[m[33m ([m[1;33mtag: [m[1;33mv1.5.0[m[33m)[m update: drop native viewer support
+[33m71468c4[m improve: graph tick align
+[33m5eeadab[m impl: total energy, peak power and current calculation
+[33m16409a1[m update: readme
+[33mc8f4a21[m update: housing 3d models
+[33mc285bfd[m[33m ([m[1;33mtag: [m[1;33mv1.4.2[m[33m)[m add: disclaimer
+[33m53884ed[m update: housing 3d model
+[33m2eaa1fb[m[33m ([m[1;33mtag: [m[1;33mv1.4.1[m[33m)[m update: PCB components
+[33m3f7d0d3[m update: clarify resolution unit and fix typos
+[33m133c85d[m[33m ([m[1;33mtag: [m[1;33mv1.4.0[m[33m)[m fix: broken link
+[33m72fd434[m fix: warning window not disappearing bug
+[33m1dd5344[m update: new housing for redesigned pcb
+[33m40d6cf6[m update: README connector informations
+[33m14d2a3b[m update: apply crystal changes
+[33m2a28e64[m refactor: PCB redesign
+[33m530e3cb[m[33m ([m[1;33mtag: [m[1;33mv1.3.0[m[33m)[m update: README
+[33me800176[m improve: viewer log protocol v2, error handling and file export
+[33m5eec6c7[m impl: log protocol v2
+[33m8ff64f5[m update: include debug symbol in release elf
+[33m8255831[m[33m ([m[1;33mtag: [m[1;33mv1.2.0[m[33m)[m update: README
+[33m252a1f4[m update: housing 3d model
+[33m48df751[m update: move external link icons to top
+[33m451cdf9[m update: misc readme changes
+[33ma66693f[m add: housing 3d image
+[33m813050f[m add: housing 3d model
+[33m8a32711[m add: housing stl export pipeline
+[33m2d907f5[m[33m ([m[1;33mtag: [m[1;33mv1.1.1[m[33m)[m update: fix bottom icons on viewer
+[33m0dd3651[m update: README
+[33mbfb39da[m add: flashing script to the release
+[33mb6922c1[m remove: version names from release artifacts
+[33m105e8be[m fix: kicad svg export
+[33mac62fd9[m fix: updated kicad symbols from library
+[33mf9083b8[m add: firmware flashing script to release file
+[33m2fb6d16[m remove: J1 and J3 from POS list
+[33m6aa10b2[m readme: deprecate 5VOUT
+[33mfed92b0[m[33m ([m[1;33mtag: [m[1;33mv1.1.0[m[33m)[m improve: mobile view
+[33m21e714e[m add: readme numberings
+[33mb355c14[m improve: pinmap images
+[33m8ccc26a[m update: misc readme desc
+[33m3a74cd4[m[33m ([m[1;33mtag: [m[1;33mv1.0.0[m[33m)[m update: misc release and readme descriptions
+[33m49489e9[m improve: adc avg calc structure
+[33mfcecb24[m improve: adc error compensation with avg calc
+[33m4b7f0c6[m update: HV voltage scale from 0.01V to 0.1V
+[33mfd908fc[m improve: add boot-up calibration
+[33m2f4b577[m fix: wrong current calculation
+[33m6359a95[m update: \r\n for newline
+[33m6417d46[m improve: release messages and readme
+[33ma985694[m improve: remove redundant codes
+[33mf851555[m add: refresh device time
+[33m446ddf9[m improve: milliseconds in the second line on graph
+[33m116093d[m update: misc guide fixes
+[33m9f66edf[m fix: viewer timestamp
+[33mf24880e[m fix: bundle minified js
+[33mc213581[m update: prevent actions on tag push
+[33mc94c051[m add: favicon
+[33m2c9e716[m fix: touch zooming
+[33mab9eb45[m add: bundled HTML to release
+[33m26015bd[m fix: misc viewer bugs and favicon
+[33mfd6942f[m chore: final updates for the release
+[33mb57c1e9[m fix: RTC date not increasing problem
+[33m5dab7d0[m update: set rtc in BCD format
+[33m80ea864[m update: get RTC time from CDC
+[33mdbc7dc1[m add: gerbers to release
+[33m4c4fff7[m chore: prepare the first release
+[33mff4eaf4[m fix: missing uplot on actions
+[33mec057f1[m fix: LMV324AIDR and TLV9001UIDBVR
+[33mf62e07a[m fix: tauri frontend
+[33m991fadb[m update: usage guide
+[33m3c5b5ff[m update: README
+[33ma6ecafa[m improve: UX for filename and delete logs
+[33mfb4fbf9[m fix: web build dependencies
+[33m9e89a47[m update: working CDC commands
+[33mf1e46c5[m update: working data viewer
+[33m80a08d8[m add: log parser
+[33m498d865[m add: graph image export
+[33m3dcb4b3[m add: chart template
+[33m8d56c4f[m update: viewer UI prototype
+[33mc2da78a[m add: web application workflow
+[33m8639135[m add: viewer template
+[33maeb5008[m add: USB CDC command prototype
+[33mc202673[m update: decrease MSC buffer size to 8KB
+[33mea74b0e[m update: utilize FATFS label and timestamp
+[33m77f4130[m port: MSC get capacity and read
+[33m3fbf4d6[m update: bring TinyUSB msc disk callbacks to energymeter_usb.c
+[33m2c5ca85[m update: bring TinyUSB usb descriptors into energymeter_usb.c
+[33m99c5f16[m update: readme
+[33mae75974[m fix: HV current calculation
+[33m59c5225[m fix: VBUS voltage detection to judge operation mode
+[33ma87159e[m update: rtc backup register manipulation
+[33m09229b0[m fix: make adc_flag volatile to prevent optimized out
+[33m46e9b93[m fix: wrong HV voltage divider value
+[33me54baf4[m update: log filename format
+[33m906c605[m update: working recorder SD, TIM
+[33m5faceca[m fix: misc outputs
+[33m4b76559[m update: debug utils
+[33m329993a[m improve: force bus enumeration on reset
+[33med78c77[m improve: error handling
+[33m2c02642[m add: debug prints
+[33md644943[m fix: mode decision voltage value
+[33m4f0c85b[m improve: enable -Werror and correct DEBUG variable
+[33m32a32ea[m add: complete adc calculations
+[33me15b2d0[m improve: enforce 4-byte align for packed structs
+[33mca70157[m update: basic recorder sd and timer manipulation
+[33ma6f9ec6[m update: add adc ch vrefint, set timer freq, remove usb_detect and fix fatfs sd mode
+[33m704e88d[m update: basic call structure
+[33m95fd84f[m update: README
+[33m9374300[m update: LICENSE
+[33m5100a79[m add: BOM/CPL
+[33m7abf8e7[m remove: unused gerbers and BOM/CPL from gitignore
+[33m796ca3c[m update: HV connector
+[33mafc90de[m update: re-artworked PCB with amc3311
+[33m9d695a7[m update: use AMC3311 and LM324
+[33md382eb9[m update: cleanup tracks, add teardrops
+[33m4448c15[m action: add ERC and DRC test, export step and vrml 3d models
+[33m4feacce[m update: replace shortfall parts
+[33mbcac75a[m fix: SMT issues and resistor values
+[33md86d37a[m fix: isolation distance
+[33m2125b66[m update: complete artwork prototype
+[33m695306c[m update: artwork almost done
+[33m42c490c[m update: initial pcb with netlist
+[33m3b398a2[m update: 3.3v reference, power supply, footprints
+[33mc3006fe[m update: ERC and symbol annotations
+[33meb20431[m action: add converted and trimmed png for the schematic
+[33m5b9758c[m update: complete schematic prototype
+[33m25152b3[m add: power supply capacitors
+[33m984bec3[m add: peripheral schematics
+[33m0797140[m update: power, adc, sensor circuits
+[33m3112d4d[m improve: caching kicad installation
+[33m3f0cd6c[m add: schematic template
+[33mb33dd42[m add: native application template
+[33mf23ad12[m add: github files
+[33mb178539[m update: enable sdio and fatfs
+[33m9e98d6d[m update: working TinyUSB CDC_MSC example
+[33mb953864[m update: initial peripheral setup
+[33ma4497dc[m bump: tinyusb 0.17.0
+[33me889418[m add: gitignore
+[33mb1128ea[m Initial commit
