@@ -215,6 +215,9 @@ function initBatteryChart() {
       width: batteryChartContainer.value.clientWidth - 32,
       height: 250,
       ms: true,
+      plugins: [
+        lapStartPlugin(),
+      ],
       series: [
         {},
         {
@@ -455,7 +458,7 @@ function lapStartPlugin() {
 
     for (const lap of result.value.raceBoundaries) {
 
-      const xValue = chartData.value.processed[0][lap.startIndex];
+      const xValue = u.data[0][lap.startIndex];
 
       // 화면 밖이면 안 그림
       if (xValue < u.scales.x.min || xValue > u.scales.x.max)
