@@ -292,6 +292,7 @@ function readLogFile(file) {
 
 async function handleFileSelect(e) {
   const files = [...e.target.files];
+
   if (!files.length) return;
 
   selectedFiles.value = files;
@@ -305,10 +306,15 @@ async function handleFileSelect(e) {
 
   try {
     const results = await Promise.all(
-      files.map(file => readLogFile(file))
+      files.map(async (file) => ({
+        fileName: file.name,
+        result: await readLogFile(file),
+      }))
     );
+    results.sort((a, b) =>  a.result.header.datetime - b.result.header.datetime);
 
     const combined = combineResults(results);
+    console.log(combined.raceBoundaries);
     result.value = combined;
 
     setChartData( calculateMetadata(result.value, powerLimit.value) );
@@ -330,19 +336,26 @@ function setChartData(data) {
   displayMetadata(data);
 }
 
-function combineResults(results) {
-  if (!results.length) return null;
+function combineResults(runs) {
+  if (!runs.length) return null;
 
-  const combined = structuredClone(results[0]);
+  const combined = structuredClone(runs[0].result);
 
   combined.data = [];
-  combined.error = [];
-  combined.violation = [];
+  combined.raceBoundaries = [];
 
-  for (const r of results) {
+  for (let i = 0; i < runs.length; i++) {
+    const run = runs[i];
+    const r = run.result;
+
+    combined.raceBoundaries.push({
+        race: i + 1,
+        file: run.fileName,
+        timestamp: r.header.datetime,
+        startIndex: combined.data.length,
+    });
+
     combined.data.push(...r.data);
-    combined.error.push(...r.error);
-    combined.violation.push(...r.violation);
   }
 
   return combined;
