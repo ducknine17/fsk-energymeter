@@ -125,6 +125,8 @@ export function parse(data) {
             ),
           ),
         };
+        console.log("Header datetime =", new Date(log.header.datetime).toString());
+        console.log("Header timestamp =", log.header.datetime);
         log.timestamp = log.header.datetime + log.header.startup;
         logs.header = log.header;
         break;

@@ -14,10 +14,9 @@ import {
 const notyf = useNotification();
 const chartContainer = ref(null);
 const batteryChartContainer = ref(null);
-const selectedFile = ref(null);
-const result = ref(null);
 const selectedFiles = ref([]);
-const lapBoundaries = ref([]);
+const selectedFile = ref("");
+const result = ref(null);
 const powerLimit = ref(parseInt(localStorage.getItem("power-limit")) || 80);
 
 let uplot = null;
@@ -198,7 +197,6 @@ function initChart() {
         wheelZoomPlugin({ factor: 0.75 }),
         peakAnnotationsPlugin(result),
         violationVisibilityPlugin(),
-        lapBoundaryPlugin(),
       ],
     },
     null,
@@ -223,9 +221,6 @@ function initBatteryChart() {
           value: (_, v) => (v?.toFixed(1) ?? "-") + "%",
         },
       ],
-      plugins: [
-        lapBoundaryPlugin(),
-      ],
       axes: [
         {},
         {
@@ -238,122 +233,93 @@ function initBatteryChart() {
   );
 }
 
-
-function handleFileSelect(e) {
-  const files = Array.from(e.target.files);
-  if (!files.length) return;
-  selectedFiles.value = files;
-  selectedFile.value =
-    files.length === 1
-      ? files[0].name
-      : `${files.length} files selected`;
-  (async () => {
-    files.sort((a, b) => a.name.localeCompare(b.name));
-    const results = [];
-    for (const file of files) {
-      const parsed = await readLogFile(file);
-      results.push(parsed);
-    }
-    const combined = combineResults(results);
-    console.log(combined);
-    result.value = combined;
-    setChartData(
-      calculateMetadata(combined, powerLimit.value)
-    );
-  })();
-}
-
-
-async function readLogFile(file) {
+function readLogFile(file) {
   return new Promise((resolve, reject) => {
-    const ext = file.name.split(".").pop();
+    const ext = file.name.split(".").pop().toLowerCase();
     const reader = new FileReader();
 
-    reader.onload = (e) => {
-      try {
-        let parsed;
-
-        if (ext === "log") {
-          parsed = parse(new Uint8Array(e.target.result));
-        } else if (ext === "json") {
-          parsed = JSON.parse(e.target.result);
-        } else {
-          reject(new Error("Unsupported file"));
-          return;
-        }
-
-        resolve(parsed);
-      } catch (err) {
-        reject(err);
-      }
-    };
-
-    if (ext === "log")
+    if (ext === "log") {
       reader.readAsArrayBuffer(file);
-    else
+
+      reader.onload = (e) => {
+        try {
+          resolve(parse(new Uint8Array(e.target.result)));
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      reader.onerror = reject;
+    }
+    else if (ext === "json") {
       reader.readAsText(file);
+
+      reader.onload = (e) => {
+        try {
+          resolve(JSON.parse(e.target.result));
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      reader.onerror = reject;
+    }
+    else if (ext === "csv") {
+      reader.readAsText(file);
+
+      reader.onload = (e) => {
+        try {
+          const lines = e.target.result.split("\n");
+          const idx = lines.indexOf("original json data");
+
+          if (idx === -1 || !lines[idx + 1]) {
+            throw new Error("Cannot restore JSON from CSV");
+          }
+
+          resolve(JSON.parse(lines[idx + 1]));
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      reader.onerror = reject;
+    }
+    else {
+      reject(new Error("Unsupported file format"));
+    }
   });
 }
 
-function combineResults(results) {
+async function handleFileSelect(e) {
+  const files = [...e.target.files];
+  if (!files.length) return;
 
-  lapBoundaries.value = [];
+  selectedFiles.value = files;
+  selectedFile.value = files[0].name;
 
-  results.sort(
-    (a, b) => a.header.datetime - b.header.datetime
-  );
+  alerts.value = {
+    violations: [],
+    warnings: [],
+    errors: [],
+  };
 
-  const combined = structuredClone(results[0]);
-
-  let offset = 0;
-
-  combined.data = [];
-
-  for (let i = 0; i < results.length; i++) {
-
-    const result = results[i];
-
-    const firstTimestamp = result.data[0].timestamp;
-
-    console.log(
-      "Boundary Time =",
-       new Date(firstTimestamp + offset).toString()
+  try {
+    const results = await Promise.all(
+      files.map(file => readLogFile(file))
     );
 
-    for (const entry of result.data) {
+    const combined = combineResults(results);
+    result.value = combined;
 
-      const cloned = structuredClone(entry);
+    setChartData( calculateMetadata(result.value, powerLimit.value) );
 
-      cloned.realTimestamp = entry.timestamp;
-
-      cloned.timestamp =
-        offset +
-        (entry.timestamp - firstTimestamp);
-
-      combined.data.push(cloned);
-    }
-
-    const lastTimestamp =
-      result.data[result.data.length - 1].timestamp;
-
-    offset += (lastTimestamp - firstTimestamp) + 1000;
-
-    console.log(
-      "Boundary =", offset,
-      new Date(offset).toString()
-    );
-
-    if (i < results.length - 1) {
-      lapBoundaries.value.push({
-        plotTime: offset,
-        realTime: result.data[0].timestamp,
-      });
-    }
+    notyf.success(`${results.length} files loaded`);
   }
-
-  return combined;
+  catch (err) {
+    alerts.value.errors = [err.message];
+    notyf.error(err.message);
+  }
 }
-
 
 function setChartData(data) {
   uplot?.setData(data.processed);
@@ -364,43 +330,22 @@ function setChartData(data) {
   displayMetadata(data);
 }
 
-function lapBoundaryPlugin() {
-  return {
-    hooks: {
-      draw: [
-        (u) => {
+function combineResults(results) {
+  if (!results.length) return null;
 
-          if (!lapBoundaries.value?.length) return;
+  const combined = structuredClone(results[0]);
 
-          const ctx = u.ctx;
+  combined.data = [];
+  combined.error = [];
+  combined.violation = [];
 
-          ctx.save();
+  for (const r of results) {
+    combined.data.push(...r.data);
+    combined.error.push(...r.error);
+    combined.violation.push(...r.violation);
+  }
 
-          ctx.strokeStyle = "#888";
-          ctx.setLineDash([5, 5]);
-
-          lapBoundaries.value.forEach((lap, idx) => {
-
-            const x = u.valToPos(lap.plotTime, "x");
-
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, u.bbox.height);
-            ctx.stroke();
-
-            ctx.fillStyle = "#666";
-            ctx.fillText(
-              `Lap ${idx + 2}`,
-              x + 4,
-              15
-            );
-          });
-
-          ctx.restore();
-        },
-      ],
-    },
-  };
+  return combined;
 }
 
 
@@ -508,18 +453,33 @@ onUnmounted(() => {
       </div>
       <div class="card-body">
         <div class="file-info">
-          <span class="label">FILE:</span><span class="value">{{ selectedFile || "No file loaded" }}</span>
+          <span class="label">FILE:</span>
+          <span class="value">{{ selectedFile || "No file loaded" }}</span>
         </div>
         <div class="file-info">
           <span class="label">FILES:</span>
           <span class="value">{{ selectedFiles.length }}</span>
         </div>
+
+        <div
+          v-if="selectedFiles.length"
+          class="selected-files"
+        >
+          <strong>Selected Files</strong>
+
+          <div
+            v-for="(file, index) in selectedFiles"
+            :key="file.name"
+          >
+            {{ index + 1 }}. {{ file.name }}
+          </div>
+        </div>
         <div class="button-group">
           <label class="btn btn-success"
             ><i class="fas fa-file"></i>Select File<input
               type="file"
-              multiple
               accept=".log,.json,.csv"
+              multiple
               @change="handleFileSelect"
               style="display: none"
           /></label>
@@ -705,5 +665,20 @@ onUnmounted(() => {
 
 .chart-hint i {
   margin-right: 0.5rem;
+}
+.selected-files {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.selected-files div {
+  padding: 4px 0;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.9rem;
 }
 </style>
