@@ -16,6 +16,7 @@ const chartContainer = ref(null);
 const batteryChartContainer = ref(null);
 const selectedFiles = ref([]);
 const selectedFile = ref("");
+const chartData = ref(null);
 const result = ref(null);
 const powerLimit = ref(parseInt(localStorage.getItem("power-limit")) || 80);
 
@@ -197,6 +198,7 @@ function initChart() {
         wheelZoomPlugin({ factor: 0.75 }),
         peakAnnotationsPlugin(result),
         violationVisibilityPlugin(),
+        lapStartPlugin(),
       ],
     },
     null,
@@ -328,6 +330,8 @@ async function handleFileSelect(e) {
 }
 
 function setChartData(data) {
+  chartData.value = data;
+
   uplot?.setData(data.processed);
   batteryPlot?.setData([
     data.processed[0],
@@ -434,6 +438,72 @@ function download(content, name, type) {
   a.download = name;
   a.click();
 }
+
+function lapStartPlugin() {
+  let elements = [];
+
+  function clear() {
+    elements.forEach(el => el.remove());
+    elements = [];
+  }
+
+  function place(u) {
+    clear();
+
+    if (!result.value?.raceBoundaries?.length) return;
+    if (!chartData.value) return;
+
+    for (const lap of result.value.raceBoundaries) {
+
+      const xValue = chartData.value.processed[0][lap.startIndex];
+
+      // 화면 밖이면 안 그림
+      if (xValue < u.scales.x.min || xValue > u.scales.x.max)
+        continue;
+
+      const x = u.valToPos(xValue, "x");
+
+      // 선
+      const line = document.createElement("div");
+      line.style.position = "absolute";
+      line.style.left = `${x}px`;
+      line.style.top = "0";
+      line.style.width = "1px";
+      line.style.height = `${u.bbox.height}px`;
+      line.style.background = "#00bcd4";
+      line.style.pointerEvents = "none";
+
+      // 글자
+      const label = document.createElement("div");
+      label.textContent = `Lap ${lap.race}`;
+      label.style.position = "absolute";
+      label.style.left = `${x + 4}px`;
+      label.style.top = "0";
+      label.style.color = "#00bcd4";
+      label.style.fontSize = "12px";
+      label.style.fontWeight = "bold";
+      label.style.pointerEvents = "none";
+
+      u.over.appendChild(line);
+      u.over.appendChild(label);
+
+      elements.push(line, label);
+    }
+  }
+
+  return {
+    hooks: {
+      ready: [
+        (u) => place(u),
+      ],
+      setScale: [
+        (u) => place(u),
+      ],
+    },
+  };
+}
+
+
 function handleResize() {
   if (!uplot || !chartContainer.value) return;
   const width = chartContainer.value.clientWidth - 32;
