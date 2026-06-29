@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   const isProduction = mode === "production";
 
   return {
-    base: isProduction ? "/energymeter/" : "",
+    base: isProduction ? "/fsk-energymeter/" : "",
     plugins: [vue(), single && viteSingleFile()],
     server: {
       port: 9800,
