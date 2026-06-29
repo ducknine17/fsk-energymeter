@@ -453,6 +453,7 @@ function lapStartPlugin() {
   function place(u) {
     clear();
 
+
     if (!result.value?.raceBoundaries?.length) return;
     if (!chartData.value) return;
 
@@ -470,9 +471,9 @@ function lapStartPlugin() {
       const line = document.createElement("div");
       line.style.position = "absolute";
       line.style.left = `${x}px`;
-      line.style.top = "0";
+      line.style.top = `${u.bbox.top}px`;
       line.style.width = "1px";
-      line.style.height = `${u.bbox.height}px`;
+      line.style.height = `${u.over.clientHeight}px`;
       line.style.background = "#00bcd4";
       line.style.pointerEvents = "none";
 
@@ -481,7 +482,7 @@ function lapStartPlugin() {
       label.textContent = `Lap ${lap.race}`;
       label.style.position = "absolute";
       label.style.left = `${x + 4}px`;
-      label.style.top = "0";
+      label.style.top = `${u.bbox.top + 5}px`;
       label.style.color = "#00bcd4";
       label.style.fontSize = "12px";
       label.style.fontWeight = "bold";
