@@ -24,7 +24,6 @@
 #include "rtc.h"
 #include "sdio.h"
 #include "tim.h"
-#include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -61,10 +60,11 @@ void SystemClock_Config(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-int _write(int file, uint8_t *ptr, int len) {
-  HAL_UART_Transmit(&huart1, (uint8_t *)ptr, (uint16_t)len, 30);
-  return (len);
+int _write(int file, uint8_t *ptr, int len)
+{
+    (void)file;
+    (void)ptr;
+    return len;
 }
 /* USER CODE END 0 */
 
@@ -103,7 +103,6 @@ int main(void)
   MX_TIM5_Init();
   MX_SDIO_SD_Init();
   MX_FATFS_Init();
-  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   energymeter_init();
   /* USER CODE END 2 */

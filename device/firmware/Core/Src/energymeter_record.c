@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "ff.h"
 #include "diskio.h"
@@ -22,6 +23,24 @@ float adc_mv[ADC_CH_CNT];     // adc mV calc buffer
 float hv_voltage_cal;
 float hv_current_cal;
 
+static FIL totalFile;
+static FIL raceFile;
+static FIL lapFile;
+
+static bool raceRunning = false;
+
+static uint16_t raceNumber = 0;
+static uint8_t currentLap = 0;
+static uint32_t lastButtonTime = 0;
+
+static void startRace(void);
+static void stopRace(void);
+static void nextLap(void);
+
+static volatile bool startStopRequest = false;
+static volatile bool lapRequest = false;
+
+
 // size must be aligned to 4 bytes
 static uint16_t checksum(uint16_t *data, size_t size) {
   uint16_t checksum = 0;
@@ -31,6 +50,107 @@ static uint16_t checksum(uint16_t *data, size_t size) {
   }
 
   return checksum;
+}
+
+static void startRace(void)
+{
+    char filename[_MAX_LFN];
+    FRESULT ret;
+    UINT written;
+    FILINFO fno;
+
+    raceNumber = 1;
+
+    while (1)
+    {
+        sprintf(filename, "race_%03d.log", raceNumber);
+
+        if (f_stat(filename, &fno) != FR_OK)
+            break;
+
+        raceNumber++;
+    }
+
+    currentLap = 1;
+
+    sprintf(filename, "race_%03d.log", raceNumber);
+
+    ret = f_open(&raceFile, filename, FA_CREATE_ALWAYS | FA_WRITE);
+    if (ret != FR_OK) {
+        error_status = EEM_ERR_SD_CARD;
+        Error_Handler();
+    }
+
+    sprintf(filename, "race_%03d_lap_%03d.log", raceNumber, currentLap);
+
+    ret = f_open(&lapFile, filename, FA_CREATE_ALWAYS | FA_WRITE);
+    if (ret != FR_OK) {
+        error_status = EEM_ERR_SD_CARD;
+        Error_Handler();
+    }
+
+    // race.log 헤더 작성
+    ret = f_write(&raceFile, &header, sizeof(header_t), &written);
+    if (ret != FR_OK) {
+        error_status = EEM_ERR_SD_CARD;
+        Error_Handler();
+    }
+
+    // lap_001.log 헤더 작성
+    ret = f_write(&lapFile, &header, sizeof(header_t), &written);
+    if (ret != FR_OK) {
+        error_status = EEM_ERR_SD_CARD;
+        Error_Handler();
+    }
+
+    raceRunning = true;
+}
+
+static void stopRace(void)
+{
+    if (!raceRunning)
+        return;
+
+    f_sync(&raceFile);
+    f_sync(&lapFile);
+
+    f_close(&raceFile);
+    f_close(&lapFile);
+
+    raceRunning = false;
+}
+
+static void nextLap(void)
+{
+    char filename[_MAX_LFN];
+    FRESULT ret;
+    UINT written;
+
+    if (!raceRunning)
+        return;
+
+    f_sync(&lapFile);
+    f_close(&lapFile);
+
+    currentLap++;
+
+    sprintf(filename, "race_%03d_lap_%03d.log",
+            raceNumber, currentLap);
+
+    ret = f_open(&lapFile, filename,
+                 FA_CREATE_ALWAYS | FA_WRITE);
+
+    if (ret != FR_OK) {
+        error_status = EEM_ERR_SD_CARD;
+        Error_Handler();
+    }
+
+    // 새 Lap 파일에도 Header 작성
+    ret = f_write(&lapFile, &header, sizeof(header_t), &written);
+    if (ret != FR_OK) {
+        error_status = EEM_ERR_SD_CARD;
+        Error_Handler();
+    }
 }
 
 void energymeter_record(void) {
@@ -51,8 +171,7 @@ void energymeter_record(void) {
           header.hour, header.minute, header.second, header.millisecond,
           header.uid[0], header.uid[1], header.uid[2]);
 
-  FIL file;
-  ret = f_open(&file, filename, FA_OPEN_APPEND | FA_WRITE);
+  ret = f_open(&totalFile, filename, FA_OPEN_APPEND | FA_WRITE);
 
   if (ret != FR_OK) {
     error_status = EEM_ERR_SD_CARD;
@@ -65,7 +184,7 @@ void energymeter_record(void) {
 
   // write log header
   UINT written;
-  ret = f_write(&file, &header, sizeof(header_t), &written);
+  ret = f_write(&totalFile, &header, sizeof(header_t), &written);
 
   DEBUG_MSG("LOG : %s\r\n", filename);
 
@@ -78,6 +197,23 @@ void energymeter_record(void) {
   HAL_TIM_Base_Start_IT(&htim5); // start 10 ms timer
 
   while (TRUE) {
+    if (startStopRequest)
+    {
+        startStopRequest = false;
+
+        if (raceRunning)
+            stopRace();
+        else
+            startRace();
+    }
+
+    if (lapRequest)
+    {
+        lapRequest = false;
+
+        if (raceRunning)
+            nextLap();
+    }
     // 10 ms timer
     if (timer_flag) {
       // reset all average buffers
@@ -110,7 +246,13 @@ void energymeter_record(void) {
       log.checksum = checksum((uint16_t *)&log, sizeof(log_t));
 
       // won't handle error; better keep retrying on failure
-      ret = f_write(&file, &log, sizeof(log_t), &written);
+      ret = f_write(&totalFile, &log, sizeof(log_t), &written);
+
+      if (raceRunning)
+      {
+        f_write(&raceFile, &log, sizeof(log_t), &written);
+        f_write(&lapFile, &log, sizeof(log_t), &written);
+      }
 
       adc_flag = FALSE;
       timer_flag = FALSE;
@@ -118,11 +260,18 @@ void energymeter_record(void) {
 
     // 100 ms timer
     if (sync_flag) {
-      // won't handle error; better keep retrying on failure
-      f_sync(&file); // typically take 4 ms; worst 10 ms once in 2~3 seconds
-      sync_flag = FALSE;
 
-      HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); // LED indicator
+       f_sync(&totalFile);
+
+        if (raceRunning)
+        {
+            f_sync(&raceFile);
+            f_sync(&lapFile);
+        }
+
+        sync_flag = FALSE;
+
+        HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
     }
   }
 }
@@ -197,4 +346,23 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
   }
   #endif
   // #endif
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    uint32_t now = HAL_GetTick();
+
+    if ((now - lastButtonTime) < 100)
+        return;
+
+    lastButtonTime = now;
+
+    if (GPIO_Pin == GPIO_PIN_7)
+    {
+        startStopRequest = true;
+    }
+    else if (GPIO_Pin == GPIO_PIN_6)
+    {
+        lapRequest = true;
+    }
 }
