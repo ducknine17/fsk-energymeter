@@ -225,7 +225,14 @@ void energymeter_record(void) {
       // ADC measurement average calculation
       for (int i = 0; i < ADC_AVG_CNT; i++) {
         HAL_ADC_Start_DMA(&hadc1, adc, ADC_CH_CNT);
-        while (adc_flag != TRUE); // poll until ADC conv done
+
+        uint32_t timeout = HAL_GetTick();
+
+        while (adc_flag != TRUE) {
+            if (HAL_GetTick() - timeout > 10) {
+                break;
+            }
+        }
 
         adc_avg[ADC_LV_VOLTAGE] += adc_calc[ADC_LV_VOLTAGE];
         adc_avg[ADC_HV_CURRENT] += adc_calc[ADC_HV_CURRENT];
