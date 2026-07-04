@@ -333,7 +333,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 
   // actual value calculation
   adc_calc[ADC_LV_VOLTAGE] = (int16_t)(adc_mv[ADC_LV_VOLTAGE] * VOLTAGE_DIVIDER_RATIO_LV / 10.0f);
-  adc_calc[ADC_HV_CURRENT] = (int16_t)((((adc_mv[ADC_HV_CURRENT] * VOLTAGE_DIVIDER_RATIO_HV_C) - adc_mv[ADC_5V_REF]) * 4.0f) - hv_current_cal);
+  // adc_calc[ADC_HV_CURRENT] = (int16_t)((((adc_mv[ADC_HV_CURRENT] * VOLTAGE_DIVIDER_RATIO_HV_C) - adc_mv[ADC_5V_REF]) * 4.0f) - hv_current_cal);
   adc_calc[ADC_HV_VOLTAGE] = (int16_t)((adc_mv[ADC_HV_VOLTAGE] * VOLTAGE_DIVIDER_RATIO_HV / 100.0f) - hv_voltage_cal);
 
   // temperature calculation
