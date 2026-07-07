@@ -10,10 +10,11 @@
 
 extern header_t header;
 extern uint32_t error_status;
+extern RTC_HandleTypeDef hrtc;
 
-uint32_t timer_flag; // 10 ms timer flag
-uint32_t sync_flag;  // 1000 ms timer flag
-uint32_t tim_cnt;    // 1000 ms counter
+volatile uint32_t timer_flag; // 10 ms timer flag
+volatile uint32_t sync_flag;  // 1000 ms timer flag
+volatile uint32_t tim_cnt;    // 1000 ms counter
 
 volatile uint32_t adc_flag;   // adc conversion flag
 uint32_t adc[ADC_CH_CNT];     // adc conversion buffer
@@ -52,28 +53,35 @@ static uint16_t checksum(uint16_t *data, size_t size) {
   return checksum;
 }
 
+static void getCurrentDateTime(RTC_DateTypeDef *date, RTC_TimeTypeDef *time)
+{
+    HAL_RTC_GetTime(&hrtc, time, RTC_FORMAT_BIN);
+    HAL_RTC_GetDate(&hrtc, date, RTC_FORMAT_BIN);
+}
+
 static void startRace(void)
 {
     char filename[_MAX_LFN];
     FRESULT ret;
     UINT written;
-    FILINFO fno;
 
-    raceNumber = 1;
-
-    while (1)
-    {
-        sprintf(filename, "race_%03d.log", raceNumber);
-
-        if (f_stat(filename, &fno) != FR_OK)
-            break;
-
-        raceNumber++;
-    }
-
+    raceNumber++;
     currentLap = 1;
 
-    sprintf(filename, "race_%03d.log", raceNumber);
+    RTC_TimeTypeDef sTime;
+    RTC_DateTypeDef sDate;
+    getCurrentDateTime(&sDate, &sTime);
+
+    sprintf(filename,
+            "race-%d-20%02d-%02d-%02d-%02d-%02d-%02d-%03d.log",
+            raceNumber,
+            sDate.Year,
+            sDate.Month,
+            sDate.Date,
+            sTime.Hours,
+            sTime.Minutes,
+            sTime.Seconds,
+            (int)(HAL_GetTick() % 1000));
 
     ret = f_open(&raceFile, filename, FA_CREATE_ALWAYS | FA_WRITE);
     if (ret != FR_OK) {
@@ -81,7 +89,17 @@ static void startRace(void)
         Error_Handler();
     }
 
-    sprintf(filename, "race_%03d_lap_%03d.log", raceNumber, currentLap);
+    sprintf(filename,
+            "race-%d-lap-%d-20%02d-%02d-%02d-%02d-%02d-%02d-%03d.log",
+            raceNumber,
+            currentLap,
+            sDate.Year,
+            sDate.Month,
+            sDate.Date,
+            sTime.Hours,
+            sTime.Minutes,
+            sTime.Seconds,
+            (int)(HAL_GetTick() % 1000));
 
     ret = f_open(&lapFile, filename, FA_CREATE_ALWAYS | FA_WRITE);
     if (ret != FR_OK) {
@@ -91,14 +109,14 @@ static void startRace(void)
 
     // race.log 헤더 작성
     ret = f_write(&raceFile, &header, sizeof(header_t), &written);
-    if (ret != FR_OK) {
+    if (ret != FR_OK || written != sizeof(header_t)) {
         error_status = EEM_ERR_SD_CARD;
         Error_Handler();
     }
 
     // lap_001.log 헤더 작성
     ret = f_write(&lapFile, &header, sizeof(header_t), &written);
-    if (ret != FR_OK) {
+    if (ret != FR_OK || written != sizeof(header_t)) {
         error_status = EEM_ERR_SD_CARD;
         Error_Handler();
     }
@@ -134,8 +152,22 @@ static void nextLap(void)
 
     currentLap++;
 
-    sprintf(filename, "race_%03d_lap_%03d.log",
-            raceNumber, currentLap);
+    RTC_TimeTypeDef sTime;
+    RTC_DateTypeDef sDate;
+
+    getCurrentDateTime(&sDate, &sTime);
+
+    sprintf(filename,
+            "race-%d-lap-%d-20%02d-%02d-%02d-%02d-%02d-%02d-%03d.log",
+            raceNumber,
+            currentLap,
+            sDate.Year,
+            sDate.Month,
+            sDate.Date,
+            sTime.Hours,
+            sTime.Minutes,
+            sTime.Seconds,
+            (int)(HAL_GetTick() % 1000));
 
     ret = f_open(&lapFile, filename,
                  FA_CREATE_ALWAYS | FA_WRITE);
@@ -147,7 +179,7 @@ static void nextLap(void)
 
     // 새 Lap 파일에도 Header 작성
     ret = f_write(&lapFile, &header, sizeof(header_t), &written);
-    if (ret != FR_OK) {
+    if (ret != FR_OK || written != sizeof(header_t)) {
         error_status = EEM_ERR_SD_CARD;
         Error_Handler();
     }
@@ -166,7 +198,7 @@ void energymeter_record(void) {
 
   char filename[_MAX_LFN];
 
-  sprintf(filename, "20%02d-%02d-%02d-%02d-%02d-%02d-%03d %08lX-%08lX-%08lX.log",
+  sprintf(filename, "total-20%02d-%02d-%02d-%02d-%02d-%02d-%03d %08lX-%08lX-%08lX.log",
           header.year, header.month, header.day,
           header.hour, header.minute, header.second, header.millisecond,
           header.uid[0], header.uid[1], header.uid[2]);
@@ -185,6 +217,10 @@ void energymeter_record(void) {
   // write log header
   UINT written;
   ret = f_write(&totalFile, &header, sizeof(header_t), &written);
+  if (ret != FR_OK || written != sizeof(header_t)) {
+    error_status = EEM_ERR_SD_CARD;
+    Error_Handler();
+  }
 
   DEBUG_MSG("LOG : %s\r\n", filename);
 
@@ -254,11 +290,24 @@ void energymeter_record(void) {
 
       // won't handle error; better keep retrying on failure
       ret = f_write(&totalFile, &log, sizeof(log_t), &written);
+      if (ret != FR_OK || written != sizeof(log_t)) {
+          error_status = EEM_ERR_SD_CARD;
+          Error_Handler();
+      }
 
       if (raceRunning)
       {
-        f_write(&raceFile, &log, sizeof(log_t), &written);
-        f_write(&lapFile, &log, sizeof(log_t), &written);
+        ret = f_write(&raceFile, &log, sizeof(log_t), &written);
+        if (ret != FR_OK || written != sizeof(log_t)) {
+            error_status = EEM_ERR_SD_CARD;
+            Error_Handler();
+        }
+
+        ret = f_write(&lapFile, &log, sizeof(log_t), &written);
+        if (ret != FR_OK || written != sizeof(log_t)) {
+            error_status = EEM_ERR_SD_CARD;
+            Error_Handler();
+        }
       }
 
       adc_flag = FALSE;
@@ -268,12 +317,25 @@ void energymeter_record(void) {
     // 100 ms timer
     if (sync_flag) {
 
-       f_sync(&totalFile);
+        ret = f_sync(&totalFile);
+        if (ret != FR_OK) {
+            error_status = EEM_ERR_SD_CARD;
+            Error_Handler();
+        }
 
         if (raceRunning)
         {
-            f_sync(&raceFile);
-            f_sync(&lapFile);
+            ret = f_sync(&raceFile);
+            if (ret != FR_OK) {
+                error_status = EEM_ERR_SD_CARD;
+                Error_Handler();
+            }
+
+            ret = f_sync(&lapFile);
+            if (ret != FR_OK) {
+                error_status = EEM_ERR_SD_CARD;
+                Error_Handler();
+            }
         }
 
         sync_flag = FALSE;
@@ -311,9 +373,12 @@ void energymeter_calibrate(void) {
 
 // 10ms TIM5 callback
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+  if (htim->Instance != TIM5) {
+    return;
+  }
+
   timer_flag = TRUE;
 
-  // 100 ms elapsed
   if (++tim_cnt >= 10) {
     sync_flag = TRUE;
     tim_cnt = 0;
@@ -322,6 +387,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 // ADC conversion callback
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+  if (hadc->Instance != ADC1) {
+    return;
+  }
   // Vref calculation
   adc_mv[ADC_VREFINT] = (float)VREFINT_CAL_VREF * (float)(*VREFINT_CAL_ADDR) / (float)adc[ADC_VREFINT];
 
@@ -333,7 +401,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 
   // actual value calculation
   adc_calc[ADC_LV_VOLTAGE] = (int16_t)(adc_mv[ADC_LV_VOLTAGE] * VOLTAGE_DIVIDER_RATIO_LV / 10.0f);
-  // adc_calc[ADC_HV_CURRENT] = (int16_t)((((adc_mv[ADC_HV_CURRENT] * VOLTAGE_DIVIDER_RATIO_HV_C) - adc_mv[ADC_5V_REF]) * 4.0f) - hv_current_cal);
+  adc_calc[ADC_HV_CURRENT] = (int16_t)((((adc_mv[ADC_HV_CURRENT] * VOLTAGE_DIVIDER_RATIO_HV_C) - adc_mv[ADC_5V_REF]) * 4.0f) - hv_current_cal);
   adc_calc[ADC_HV_VOLTAGE] = (int16_t)((adc_mv[ADC_HV_VOLTAGE] * VOLTAGE_DIVIDER_RATIO_HV / 100.0f) - hv_voltage_cal);
 
   // temperature calculation
