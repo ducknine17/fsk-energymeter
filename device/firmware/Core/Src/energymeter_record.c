@@ -32,7 +32,8 @@ static bool raceRunning = false;
 
 static uint16_t raceNumber = 0;
 static uint8_t currentLap = 0;
-static uint32_t lastButtonTime = 0;
+static uint32_t lastStartStopTime = 0;
+static uint32_t lastLapTime = 0;
 
 static void startRace(void);
 static void stopRace(void);
@@ -427,17 +428,20 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     uint32_t now = HAL_GetTick();
 
-    if ((now - lastButtonTime) < 100)
-        return;
-
-    lastButtonTime = now;
-
     if (GPIO_Pin == GPIO_PIN_7)
     {
+        if ((now - lastStartStopTime) < 500)
+            return;
+
+        lastStartStopTime = now;
         startStopRequest = true;
     }
     else if (GPIO_Pin == GPIO_PIN_6)
     {
+        if ((now - lastLapTime) < 300)
+            return;
+
+        lastLapTime = now;
         lapRequest = true;
     }
 }
