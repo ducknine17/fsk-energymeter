@@ -221,17 +221,24 @@ function initBatteryChart() {
       series: [
         {},
         {
-          label: "Battery %",
+          label: "Battery Voltage",
           stroke: "gold",
-          value: (_, v) => (v?.toFixed(1) ?? "-") + "%",
+          value: (_, v) => (v?.toFixed(1) ?? "-") + " V",
         },
       ],
       axes: [
         {},
         {
-          values: (_, t) => t.map((v) => v.toFixed(0) + "%"),
+          splits: () => [42, 44, 46, 48, 50, 52, 54, 56, 58],
+          values: (_, t) => t.map((v) => v.toFixed(0) + " V"),
         },
       ],
+      scales: {
+        y: {
+          auto: false,
+          range: () => [42, 58],
+        },
+      },
     },
     [[], []],
     batteryChartContainer.value,
@@ -381,7 +388,7 @@ function displayMetadata(logs) {
   metadata.value.power = `${logs.max_power.toFixed(1)} kW`;
   metadata.value.voltage = `${logs.max_voltage.toFixed(1)} V`;
   metadata.value.current = `${logs.max_current.toFixed(1)} A`;
-  metadata.value.battery_remaining = `${logs.battery_remaining.toFixed(1)} %`;
+  metadata.value.battery_remaining = `${logs.battery_remaining.toFixed(1)} V`;
   alerts.value.warnings =
     logs.header.datetime > Number(new Date(2099, 0))
       ? ["Invalid RTC date detected. Sync the clock in the Device configuration tab."]
@@ -634,7 +641,7 @@ onUnmounted(() => {
                 <td>{{ metadata.current }}</td>
               </tr>
               <tr>
-                <td>Battery Remaining</td>
+                <td>Battery Voltage</td>
                 <td>{{ metadata.battery_remaining }}</td>
               </tr>
             </tbody></table>
@@ -662,7 +669,7 @@ onUnmounted(() => {
         </div>
         <div ref="chartContainer" class="chart-container"></div>
         <h4 style="margin-top: 2rem; margin-bottom: 1rem;">
-          Battery Remaining (%)
+          Battery Voltage (V)
         </h4>
         <div ref="batteryChartContainer" class="chart-container"></div>
         <div class="chart-hint"><i class="fas fa-info-circle"></i> Drag or scroll to zoom, double click to reset.</div>

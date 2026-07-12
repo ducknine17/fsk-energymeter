@@ -215,17 +215,25 @@ function initBatteryChart() {
       series: [
         {},
         {
-          label: "Battery %",
+          label: "Battery Voltage",
           stroke: "gold",
-          value: (_, v) => (v?.toFixed(1) ?? "-") + "%",
+          value: (_, v) => (v?.toFixed(1) ?? "-") + " V",
         },
       ],
       axes: [
         {},
         {
-          values: (_, t) => t.map((v) => v.toFixed(0) + "%"),
+          scale: "y",
+          splits: () => [42, 44, 46, 48, 50, 52, 54, 56, 58],
+          values: (_, t) => t.map((v) => v.toFixed(0) + " V"),
         },
       ],
+      scales: {
+        y: {
+         auto: false,
+         range: [42, 58],
+        },
+      },
     },
     [[], []],
     batteryChartContainer.value,
@@ -486,7 +494,7 @@ onUnmounted(() => {
         </div>
         <div ref="chartContainer" class="chart-container"></div>
         <h4 style="margin-top: 2rem; margin-bottom: 1rem;">
-          Battery Remaining (%)
+          Battery Voltage (V)
         </h4>
         <div ref="batteryChartContainer" class="chart-container"></div>
         <div class="chart-hint"><i class="fas fa-info-circle"></i> Drag or scroll to zoom, double click to reset.</div>

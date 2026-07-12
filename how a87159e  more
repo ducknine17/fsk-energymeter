@@ -1,0 +1,22 @@
+[33mcommit a87159e1eed770f5f57b9345ed11bbdfeaa7e22e[m
+Author: 오병준 <mail@luftaquila.io>
+Date:   Wed Oct 16 23:10:32 2024 +0900
+
+    update: rtc backup register manipulation
+
+[1mdiff --git a/device/firmware/Core/Src/rtc.c b/device/firmware/Core/Src/rtc.c[m
+[1mindex edad483..9723bd7 100644[m
+[1m--- a/device/firmware/Core/Src/rtc.c[m
+[1m+++ b/device/firmware/Core/Src/rtc.c[m
+[36m@@ -56,7 +56,11 @@[m [mvoid MX_RTC_Init(void)[m
+   }[m
+ [m
+   /* USER CODE BEGIN Check_RTC_BKUP */[m
+[32m+[m[32m  if (HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR0) == 0xBADACAFE) {[m
+[32m+[m[32m    return;[m
+[32m+[m[32m  }[m
+ [m
+[32m+[m[32m  HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR0, 0xBADACAFE);[m
+   /* USER CODE END Check_RTC_BKUP */[m
+ [m
+   /** Initialize RTC and set the Time and Date[m

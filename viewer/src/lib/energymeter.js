@@ -167,7 +167,8 @@ export function parse(data) {
 }
 
 export function calculateMetadata(data, powerLimit = 80) {
-  const BATTERY_CAPACITY = 4133; // Wh
+  const FULL_VOLTAGE = 58.0;
+  const EMPTY_VOLTAGE = 42.0;
   const processed = [[], [], [], [], [], [], [], [], []];
   const violations = [];
 
@@ -266,8 +267,10 @@ export function calculateMetadata(data, powerLimit = 80) {
       }
     }
 
-  const soc =
-    Math.max( 0, 100 - (totalEnergy / BATTERY_CAPACITY) * 100 );
+  let soc =
+    ((record.hv_voltage - EMPTY_VOLTAGE) /
+    (FULL_VOLTAGE - EMPTY_VOLTAGE)) * 100;
+  soc = Math.max(0, Math.min(100, soc));
 
     processed[0].push(timestamp);
     processed[1].push(record.hv_voltage);
@@ -277,7 +280,7 @@ export function calculateMetadata(data, powerLimit = 80) {
     processed[5].push(record.temperature);
     processed[6].push(null);
     processed[7].push(null);
-    processed[8].push(soc);
+    processed[8].push(record.hv_voltage);
 
     pIdx++;
   }
@@ -292,8 +295,17 @@ export function calculateMetadata(data, powerLimit = 80) {
     }
   }
 
-  let batteryRemaining =  100 - (totalEnergy / BATTERY_CAPACITY) * 100;
-  batteryRemaining = Math.max(0, batteryRemaining);
+  let batteryRemaining = 0;
+
+  if (processed[1].length > 0) {
+    const lastVoltage = processed[1][processed[1].length - 1];
+
+    batteryRemaining =
+      ((lastVoltage - EMPTY_VOLTAGE) /
+      (FULL_VOLTAGE - EMPTY_VOLTAGE)) * 100;
+
+    batteryRemaining = Math.max(0, Math.min(100, batteryRemaining));
+  }
 
 
   data.processed = processed;
