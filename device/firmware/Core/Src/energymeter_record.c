@@ -239,9 +239,14 @@ void energymeter_record(void) {
         startStopRequest = false;
 
         if (raceRunning)
+        {
             stopRace();
+            startRace();   // 바로 다음 Race 시작
+        }
         else
+        {
             startRace();
+        }
     }
 
     if (lapRequest)
